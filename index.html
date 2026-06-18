@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visa Manager · Google Sheets</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+      background: #f4f7fb;
+      padding: 24px;
+      color: #1e293b;
+    }
+    .app-wrapper {
+      max-width: 1500px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 28px;
+      padding: 28px 32px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+    }
+    h2 {
+      font-weight: 600;
+      font-size: 1.9rem;
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #e9edf2;
+      padding-bottom: 18px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .btn {
+      background: white;
+      border: 1px solid #d0d8e0;
+      padding: 8px 18px;
+      border-radius: 40px;
+      font-weight: 500;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary { background: #1e293b; color: white; border-color: #1e293b; }
+    .btn-primary:hover { background: #0f172a; }
+    .btn-outline { background: transparent; border: 1px solid #cbd5e1; }
+    .btn-outline:hover { background: #f1f5f9; }
+    .btn-print { background: #f8fafc; border-color: #94a3b8; }
+    .btn-print:hover { background: #e2e8f0; }
+    .btn-danger { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-success { background: #dcfce7; border-color: #86efac; color: #166534; }
+    .btn-success:hover { background: #bbf7d0; }
+    .btn-warning { background: #fef9c3; border-color: #fde047; color: #854d0e; }
+    .btn-warning:hover { background: #fef08a; }
+    .btn-info { background: #dbeafe; border-color: #93c5fd; color: #1e3a8a; }
+    .btn-info:hover { background: #bfdbfe; }
+    .btn-sm { padding: 4px 12px; font-size: 0.8rem; }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .status-bar {
+      background: #dcfce7;
+      padding: 8px 16px;
+      border-radius: 40px;
+      font-size: 0.85rem;
+      color: #166534;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-bar.loading { background: #fef9c3; color: #854d0e; }
+    .status-bar.error { background: #fee2e2; color: #991b1b; }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      background: #22c55e;
+    }
+    .status-bar.loading .status-dot { background: #eab308; animation: pulse 1s infinite; }
+    .status-bar.error .status-dot { background: #ef4444; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 2fr;
+      gap: 28px;
+      align-items: start;
+    }
+    .panel {
+      background: #fafcff;
+      border-radius: 18px;
+      padding: 6px 0 10px 0;
+    }
+    .panel h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #475569;
+      padding: 0 8px 12px 8px;
+      border-bottom: 1px solid #e6edf5;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .panel h3 .small-action {
+      font-weight: 400;
+      font-size: 0.7rem;
+      background: #eef2f6;
+      padding: 2px 12px;
+      border-radius: 40px;
+      cursor: pointer;
+      transition: 0.1s;
+      text-transform: none;
+      color: #1e293b;
+    }
+    .panel h3 .small-action:hover { background: #dce3ec; }
+    
+    .search-box {
+      margin: 8px;
+      padding: 8px 12px;
+      border: 1px solid #e9edf2;
+      border-radius: 40px;
+      width: calc(100% - 16px);
+      font-size: 0.9rem;
+      background: white;
+      transition: 0.2s;
+    }
+    .search-box:focus {
+      outline: none;
+      border-color: #1e293b;
+      box-shadow: 0 0 0 3px rgba(30,41,59,0.1);
+    }
+    
+    .box {
+      background: white;
+      padding: 12px 16px;
+      margin: 6px 8px;
+      border-radius: 14px;
+      border: 1px solid #e9edf2;
+      cursor: pointer;
+      transition: 0.1s;
+      font-weight: 500;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    .box:hover { background: #f1f6fd; border-color: #b7c9dd; }
+    .box.active { background: #e6effa; border-color: #1e293b; }
+    .box .badge {
+      background: #e9edf2;
+      font-size: 0.7rem;
+      padding: 2px 12px;
+      border-radius: 40px;
+      font-weight: 400;
+      color: #334155;
+    }
+    .box.hidden {
+      display: none;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+    th {
+      background: #f1f6fa;
+      color: #1e293b;
+      font-weight: 600;
+      padding: 12px 8px;
+      border-bottom: 2px solid #dce3ec;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #eef2f6;
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    .action-group {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .empty-state {
+      padding: 30px 10px;
+      text-align: center;
+      color: #94a3b8;
+      font-style: italic;
+    }
+    .footnote {
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: #f8fafc;
+      border-left: 4px solid #1e293b;
+      font-size: 0.85rem;
+      color: #334155;
+      border-radius: 4px;
+    }
+    .footnote strong { color: #0f172a; }
+    .refresh-btn {
+      cursor: pointer;
+      padding: 4px 12px;
+      border-radius: 40px;
+      background: #eef2f6;
+      font-size: 0.7rem;
+      transition: 0.1s;
+    }
+    .refresh-btn:hover { background: #dce3ec; }
+    @media print {
+      .no-print { display: none !important; }
+      .print-hide { display: none !important; }
+      .grid-3 { display: block; }
+      .panel { border: none; padding: 0; }
+      .box { border: 1px solid #ccc; }
+      body { background: white; padding: 0.5in; }
+      .app-wrapper { box-shadow: none; padding: 10px; }
+      .action-group { display: none; }
+      .btn { display: none; }
+      .search-box { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-wrapper" id="appWrapper">
+  <h2>
+    <span>🛂 Visa Requirements</span>
+    <span class="no-print">
+      <span class="status-bar" id="statusBar">
+        <span class="status-dot"></span>
+        <span id="statusText">Loading from Google Sheets...</span>
+      </span>
+      <button class="btn btn-print" onclick="printListView()">🖨️ Print list</button>
+    </span>
+  </h2>
+
+  <div class="toolbar no-print">
+    <button class="btn btn-outline" onclick="refreshData()">🔄 Refresh Data</button>
+    <button class="btn btn-outline" onclick="resetAll()">🏠 Home / clear</button>
+  </div>
+
+  <div class="grid-3" id="mainGrid">
+    <div class="panel" id="countriesPanel">
+      <h3>🌍 Countries</h3>
+      <input type="text" class="search-box" id="countrySearch" placeholder="🔍 Search countries..." oninput="filterCountries()">
+      <div id="countries"></div>
+    </div>
+    <div class="panel" id="categoriesPanel">
+      <h3>📂 Categories</h3>
+      <input type="text" class="search-box" id="categorySearch" placeholder="🔍 Search categories..." oninput="filterCategories()">
+      <div id="categories"></div>
+    </div>
+    <div class="panel" id="docsPanel">
+      <h3>📄 Documents <span id="docContext" style="font-weight:400;font-size:0.8rem;color:#64748b;"></span></h3>
+      <input type="text" class="search-box" id="documentSearch" placeholder="🔍 Search documents..." oninput="filterDocuments()">
+      <div id="docs"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- CONFIGURATION ----------
+// REPLACE THIS WITH YOUR GOOGLE SHEET ID
+const SHEET_ID = 'YOUR_SHEET_ID_HERE';
+
+// ---------- GLOBAL STATE ----------
+let visaData = {};
+let selectedCountry = null;
+let selectedCategory = null;
+let isLoading = false;
+
+// DOM refs
+const countriesDiv = document.getElementById("countries");
+const categoriesDiv = document.getElementById("categories");
+const docsDiv = document.getElementById("docs");
+const docContext = document.getElementById("docContext");
+const statusBar = document.getElementById("statusBar");
+const statusText = document.getElementById("statusText");
+
+// ---------- STATUS FUNCTIONS ----------
+function setStatus(message, type = 'loading') {
+  statusBar.className = 'status-bar';
+  if (type === 'loading') statusBar.classList.add('loading');
+  if (type === 'error') statusBar.classList.add('error');
+  statusText.textContent = message;
+}
+
+// ---------- LOAD DATA FROM GOOGLE SHEETS ----------
+async function loadDataFromGoogleSheets() {
+  if (isLoading) return;
+  isLoading = true;
+  setStatus('Loading from Google Sheets...', 'loading');
+
+  try {
+    // Fetch data from Google Sheets as CSV
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch data from Google Sheets');
+    }
+    
+    const csvText = await response.text();
+    const data = parseCSV(csvText);
+    
+    if (data.length === 0) {
+      throw new Error('No data found in the sheet');
+    }
+
+    // Build the visaData structure
+    visaData = {};
+    data.forEach(row => {
+      const country = row.Country?.trim();
+      const category = row.Category?.trim();
+      const docName = row['Document Name']?.trim();
+      const validity = row.Validity?.trim() || '—';
+      const mofa = row.MOFA?.trim() || 'No';
+      const apostille = row.Apostille?.trim() || 'No';
+      const translation = row.Translation?.trim() || 'No';
+
+      if (country && category && docName) {
+        if (!visaData[country]) visaData[country] = {};
+        if (!visaData[country][category]) visaData[country][category] = [];
+        visaData[country][category].push({
+          name: docName,
+          validity: validity,
+          mofa: mofa,
+          apostille: apostille,
+          translation: translation
+        });
+      }
+    });
+
+    setStatus(`✅ Loaded data from ${Object.keys(visaData).length} countries`, 'connected');
+    renderAll();
+  } catch (error) {
+    console.error('Error loading data:', error);
+    setStatus('❌ Error loading data: ' + error.message, 'error');
+    
+    // Try to load from cache
+    const cached = localStorage.getItem('visaDataCache');
+    if (cached) {
+      try {
+        visaData = JSON.parse(cached);
+        setStatus('⚠️ Using cached data (offline mode)', 'error');
+        renderAll();
+      } catch (e) {
+        console.error('Error loading cache:', e);
+      }
+    }
+  } finally {
+    isLoading = false;
+  }
+}
+
+// ---------- PARSE CSV ----------
+function parseCSV(csvText) {
+  const lines = csvText.split('\n');
+  if (lines.length === 0) return [];
+  
+  // Parse headers
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  
+  const result = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    
+    // Handle quoted values properly
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+    for (let char of lines[i]) {
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        values.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    values.push(current.trim());
+    
+    const row = {};
+    headers.forEach((header, index) => {
+      row[header] = values[index] || '';
+    });
+    result.push(row);
+  }
+  return result;
+}
+
+// ---------- REFRESH DATA ----------
+window.refreshData = function() {
+  loadDataFromGoogleSheets();
+}
+
+// ---------- SEARCH FUNCTIONS ----------
+window.filterCountries = function() {
+  const searchTerm = document.getElementById('countrySearch').value.toLowerCase();
+  const boxes = countriesDiv.querySelectorAll('.box');
+  let hasVisible = false;
+  boxes.forEach(box => {
+    const text = box.textContent.toLowerCase();
+    if (text.includes(searchTerm) || searchTerm === '') {
+      box.classList.remove('hidden');
+      hasVisible = true;
+    } else {
+      box.classList.add('hidden');
+    }
+  });
+  const emptyState = countriesDiv.querySelector('.empty-state');
+  if (emptyState) {
+    if (!hasVisible && boxes.length > 0) {
+      emptyState.style.display = 'block';
+      emptyState.textContent = 'No matching countries found';
+    } else {
+      emptyState.style.display = 'none';
+    }
+  }
+}
+
+window.filterCategories = function() {
+  const searchTerm = document.getElementById('categorySearch').value.toLowerCase();
+  const boxes = categoriesDiv.querySelectorAll('.box');
+  let hasVisible = false;
+  boxes.forEach(box => {
+    const text = box.textContent.toLowerCase();
+    if (text.includes(searchTerm) || searchTerm === '') {
+      box.classList.remove('hidden');
+      hasVisible = true;
+    } else {
+      box.classList.add('hidden');
+    }
+  });
+  const emptyState = categoriesDiv.querySelector('.empty-state');
+  if (emptyState) {
+    if (!hasVisible && boxes.length > 0) {
+      emptyState.style.display = 'block';
+      emptyState.textContent = 'No matching categories found';
+    } else {
+      emptyState.style.display = 'none';
+    }
+  }
+}
+
+window.filterDocuments = function() {
+  const searchTerm = document.getElementById('documentSearch').value.toLowerCase();
+  const rows = docsDiv.querySelectorAll('.doc-row');
+  let hasVisible = false;
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    if (text.includes(searchTerm) || searchTerm === '') {
+      row.classList.remove('hidden');
+      hasVisible = true;
+    } else {
+      row.classList.add('hidden');
+    }
+  });
+  const emptyState = docsDiv.querySelector('.empty-state');
+  if (emptyState) {
+    if (!hasVisible && rows.length > 0) {
+      emptyState.style.display = 'block';
+      emptyState.textContent = 'No matching documents found';
+    } else {
+      emptyState.style.display = 'none';
+    }
+  }
+}
+
+// ---------- RENDER FUNCTIONS ----------
+function renderCountries() {
+  countriesDiv.innerHTML = "";
+  const countryKeys = Object.keys(visaData).sort();
+  if (countryKeys.length === 0) {
+    countriesDiv.innerHTML = '<div class="empty-state">No countries found in Google Sheets</div>';
+    return;
+  }
+  
+  countryKeys.forEach(country => {
+    const div = document.createElement("div");
+    div.className = `box${selectedCountry === country ? ' active' : ''}`;
+    const catCount = Object.keys(visaData[country]).length;
+    div.innerHTML = `
+      <span>${country}</span>
+      <span class="badge">${catCount} cats</span>
+    `;
+    div.onclick = () => selectCountry(country);
+    countriesDiv.appendChild(div);
+  });
+}
+
+function renderCategories() {
+  categoriesDiv.innerHTML = "";
+  if (!selectedCountry || !visaData[selectedCountry]) {
+    categoriesDiv.innerHTML = '<div class="empty-state">Select a country</div>';
+    return;
+  }
+  const catKeys = Object.keys(visaData[selectedCountry]).sort();
+  if (catKeys.length === 0) {
+    categoriesDiv.innerHTML = '<div class="empty-state">No categories</div>';
+    return;
+  }
+  
+  catKeys.forEach(cat => {
+    const div = document.createElement("div");
+    div.className = `box${selectedCategory === cat ? ' active' : ''}`;
+    const count = visaData[selectedCountry][cat].length;
+    div.innerHTML = `
+      <span>${cat}</span>
+      <span class="badge">${count} docs</span>
+    `;
+    div.onclick = () => selectCategory(cat);
+    categoriesDiv.appendChild(div);
+  });
+}
+
+function renderDocs() {
+  docsDiv.innerHTML = "";
+  if (!selectedCountry || !selectedCategory || !visaData[selectedCountry]?.[selectedCategory]) {
+    docContext.innerText = '';
+    docsDiv.innerHTML = '<div class="empty-state">Select a category to see documents</div>';
+    return;
+  }
+  const docs = visaData[selectedCountry][selectedCategory];
+  docContext.innerText = `— ${selectedCountry} / ${selectedCategory}`;
+  
+  if (docs.length === 0) {
+    docsDiv.innerHTML = '<div class="empty-state">No documents</div>';
+    return;
+  }
+
+  let html = `<table>
+    <thead><tr><th>Document</th><th>Validity</th><th>MOFA</th><th>Apostille</th><th>Translation</th></tr></thead><tbody>`;
+  
+  docs.forEach(d => {
+    html += `<tr>
+      <td><strong>${d.name}</strong></td>
+      <td>${d.validity}</td>
+      <td>${d.mofa}</td>
+      <td>${d.apostille}</td>
+      <td>${d.translation}</td>
+    </tr>`;
+  });
+  
+  html += `</tbody></table>
+    <div class="footnote">
+      <strong>📌 Important Note:</strong> All educational documents requiring attestation from MOFA must first be verified from the issuing board/university and then by IBCC/HEC.
+    </div>
+  `;
+  docsDiv.innerHTML = html;
+}
+
+// ---------- ACTIONS ----------
+window.selectCountry = function(country) {
+  selectedCountry = country;
+  selectedCategory = null;
+  renderCountries();
+  renderCategories();
+  renderDocs();
+  document.getElementById('countrySearch').value = '';
+  window.filterCountries();
+  document.getElementById('categorySearch').value = '';
+  window.filterCategories();
+}
+
+window.selectCategory = function(cat) {
+  selectedCategory = cat;
+  renderCategories();
+  renderDocs();
+  document.getElementById('categorySearch').value = '';
+  window.filterCategories();
+  document.getElementById('documentSearch').value = '';
+  window.filterDocuments();
+}
+
+window.resetAll = function() {
+  selectedCountry = null;
+  selectedCategory = null;
+  renderCountries();
+  renderCategories();
+  renderDocs();
+  docContext.innerText = '';
+  document.getElementById('countrySearch').value = '';
+  document.getElementById('categorySearch').value = '';
+  document.getElementById('documentSearch').value = '';
+  window.filterCountries();
+  window.filterCategories();
+  window.filterDocuments();
+}
+
+// ---------- PRINT ----------
+window.printListView = function() {
+  if (!selectedCountry || !selectedCategory) {
+    alert("Select a country and category to print.");
+    return;
+  }
+  const country = selectedCountry;
+  const category = selectedCategory;
+  const docs = visaData[country]?.[category] || [];
+  if (docs.length === 0) {
+    alert("No documents to print.");
+    return;
+  }
+
+  const printWindow = window.open('', '_blank', 'width=800,height=600');
+  if (!printWindow) {
+    alert("Please allow popups for printing.");
+    return;
+  }
+
+  let rows = docs.map(d => `
+    <tr>
+      <td>${d.name}</td>
+      <td>${d.validity}</td>
+      <td>${d.mofa}</td>
+      <td>${d.apostille}</td>
+      <td>${d.translation}</td>
+    </tr>
+  `).join('');
+
+  const html = `
+  <!DOCTYPE html>
+  <html>
+  <head><title>Visa documents - ${country} ${category}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 30px; }
+    h2 { border-bottom: 2px solid #333; padding-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th { background: #1e293b; color: white; padding: 10px; text-align: left; }
+    td { padding: 8px 10px; border-bottom: 1px solid #ddd; }
+    .meta { color: #475569; margin-bottom: 8px; }
+    .footer { margin-top: 30px; color: #64748b; font-size: 0.8rem; }
+    .footnote { 
+      margin-top: 20px; 
+      padding: 15px; 
+      background: #f8fafc; 
+      border-left: 4px solid #1e293b; 
+      font-size: 0.85rem; 
+      color: #334155;
+      border-radius: 4px;
+    }
+    .footnote strong { color: #0f172a; }
+  </style>
+  </head>
+  <body>
+    <h2>📋 Visa requirements · ${country}</h2>
+    <div class="meta"><strong>Category:</strong> ${category} &nbsp;|&nbsp; <strong>Documents:</strong> ${docs.length}</div>
+    <table>
+      <thead><tr><th>Document</th><th>Validity</th><th>MOFA</th><th>Apostille</th><th>Translation</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    
+    <div class="footnote">
+      <strong>📌 Important Note:</strong> All educational documents requiring attestation from MOFA must first be verified from the issuing board/university and then by IBCC/HEC.
+    </div>
+    
+    <div class="footer">Printed from Visa Manager · ${new Date().toLocaleString()}</div>
+  </body>
+  </html>
+  `;
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+}
+
+// ---------- HELPERS ----------
+function renderAll() {
+  renderCountries();
+  renderCategories();
+  renderDocs();
+}
+
+// ---------- AUTO-REFRESH ----------
+// Refresh data every 60 seconds (optional)
+let refreshInterval = null;
+
+function startAutoRefresh() {
+  if (refreshInterval) clearInterval(refreshInterval);
+  refreshInterval = setInterval(() => {
+    if (!isLoading) {
+      loadDataFromGoogleSheets();
+    }
+  }, 60000); // Refresh every minute
+}
+
+// ---------- INIT ----------
+// Load data on page load
+loadDataFromGoogleSheets();
+
+// Start auto-refresh (optional)
+// startAutoRefresh();
+
+// Keyboard: Escape = home
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    resetAll();
+  }
+});
+
+console.log('✅ Google Sheets mode active! Data updates when sheet changes.');
+</script>
+</body>
+</html>
