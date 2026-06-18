@@ -1,732 +1,1384 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Visa Manager · Google Sheets</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; }
-    body {
-      font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-      background: #f4f7fb;
-      padding: 24px;
-      color: #1e293b;
-    }
-    .app-wrapper {
-      max-width: 1500px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 28px;
-      padding: 28px 32px;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.06);
-    }
-    h2 {
-      font-weight: 600;
-      font-size: 1.9rem;
-      letter-spacing: -0.3px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 2px solid #e9edf2;
-      padding-bottom: 18px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-    }
-    .toolbar {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 24px;
-    }
-    .btn {
-      background: white;
-      border: 1px solid #d0d8e0;
-      padding: 8px 18px;
-      border-radius: 40px;
-      font-weight: 500;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: all 0.15s;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .btn-primary { background: #1e293b; color: white; border-color: #1e293b; }
-    .btn-primary:hover { background: #0f172a; }
-    .btn-outline { background: transparent; border: 1px solid #cbd5e1; }
-    .btn-outline:hover { background: #f1f5f9; }
-    .btn-print { background: #f8fafc; border-color: #94a3b8; }
-    .btn-print:hover { background: #e2e8f0; }
-    .btn-danger { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
-    .btn-danger:hover { background: #fecaca; }
-    .btn-success { background: #dcfce7; border-color: #86efac; color: #166534; }
-    .btn-success:hover { background: #bbf7d0; }
-    .btn-warning { background: #fef9c3; border-color: #fde047; color: #854d0e; }
-    .btn-warning:hover { background: #fef08a; }
-    .btn-info { background: #dbeafe; border-color: #93c5fd; color: #1e3a8a; }
-    .btn-info:hover { background: #bfdbfe; }
-    .btn-sm { padding: 4px 12px; font-size: 0.8rem; }
-    .btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    
-    .status-bar {
-      background: #dcfce7;
-      padding: 8px 16px;
-      border-radius: 40px;
-      font-size: 0.85rem;
-      color: #166534;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .status-bar.loading { background: #fef9c3; color: #854d0e; }
-    .status-bar.error { background: #fee2e2; color: #991b1b; }
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      display: inline-block;
-      background: #22c55e;
-    }
-    .status-bar.loading .status-dot { background: #eab308; animation: pulse 1s infinite; }
-    .status-bar.error .status-dot { background: #ef4444; }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visa Requirements Manager</title>
+    <style>
+        /* ========== RESET & BASE ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f4f8;
+            color: #1e293b;
+            min-height: 100vh;
+        }
 
-    .grid-3 {
-      display: grid;
-      grid-template-columns: 1fr 1fr 2fr;
-      gap: 28px;
-      align-items: start;
-    }
-    .panel {
-      background: #fafcff;
-      border-radius: 18px;
-      padding: 6px 0 10px 0;
-    }
-    .panel h3 {
-      font-size: 1rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      color: #475569;
-      padding: 0 8px 12px 8px;
-      border-bottom: 1px solid #e6edf5;
-      margin-bottom: 6px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .panel h3 .small-action {
-      font-weight: 400;
-      font-size: 0.7rem;
-      background: #eef2f6;
-      padding: 2px 12px;
-      border-radius: 40px;
-      cursor: pointer;
-      transition: 0.1s;
-      text-transform: none;
-      color: #1e293b;
-    }
-    .panel h3 .small-action:hover { background: #dce3ec; }
-    
-    .search-box {
-      margin: 8px;
-      padding: 8px 12px;
-      border: 1px solid #e9edf2;
-      border-radius: 40px;
-      width: calc(100% - 16px);
-      font-size: 0.9rem;
-      background: white;
-      transition: 0.2s;
-    }
-    .search-box:focus {
-      outline: none;
-      border-color: #1e293b;
-      box-shadow: 0 0 0 3px rgba(30,41,59,0.1);
-    }
-    
-    .box {
-      background: white;
-      padding: 12px 16px;
-      margin: 6px 8px;
-      border-radius: 14px;
-      border: 1px solid #e9edf2;
-      cursor: pointer;
-      transition: 0.1s;
-      font-weight: 500;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      user-select: none;
-    }
-    .box:hover { background: #f1f6fd; border-color: #b7c9dd; }
-    .box.active { background: #e6effa; border-color: #1e293b; }
-    .box .badge {
-      background: #e9edf2;
-      font-size: 0.7rem;
-      padding: 2px 12px;
-      border-radius: 40px;
-      font-weight: 400;
-      color: #334155;
-    }
-    .box.hidden {
-      display: none;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.9rem;
-      background: white;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
-    }
-    th {
-      background: #f1f6fa;
-      color: #1e293b;
-      font-weight: 600;
-      padding: 12px 8px;
-      border-bottom: 2px solid #dce3ec;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-    td {
-      padding: 10px 8px;
-      border-bottom: 1px solid #eef2f6;
-      vertical-align: middle;
-    }
-    tr:last-child td { border-bottom: none; }
-    .action-group {
-      display: flex;
-      gap: 6px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-    .empty-state {
-      padding: 30px 10px;
-      text-align: center;
-      color: #94a3b8;
-      font-style: italic;
-    }
-    .footnote {
-      margin-top: 16px;
-      padding: 12px 16px;
-      background: #f8fafc;
-      border-left: 4px solid #1e293b;
-      font-size: 0.85rem;
-      color: #334155;
-      border-radius: 4px;
-    }
-    .footnote strong { color: #0f172a; }
-    .refresh-btn {
-      cursor: pointer;
-      padding: 4px 12px;
-      border-radius: 40px;
-      background: #eef2f6;
-      font-size: 0.7rem;
-      transition: 0.1s;
-    }
-    .refresh-btn:hover { background: #dce3ec; }
-    @media print {
-      .no-print { display: none !important; }
-      .print-hide { display: none !important; }
-      .grid-3 { display: block; }
-      .panel { border: none; padding: 0; }
-      .box { border: 1px solid #ccc; }
-      body { background: white; padding: 0.5in; }
-      .app-wrapper { box-shadow: none; padding: 10px; }
-      .action-group { display: none; }
-      .btn { display: none; }
-      .search-box { display: none !important; }
-    }
-  </style>
+        /* ========== LAYOUT ========== */
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        /* ========== HEADER ========== */
+        .header {
+            background: white;
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header h1 span {
+            color: #64748b;
+            font-size: 0.9rem;
+            font-weight: 400;
+        }
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* ========== BUTTONS ========== */
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        .btn-primary {
+            background: #1e293b;
+            color: white;
+            border-color: #1e293b;
+        }
+        .btn-primary:hover {
+            background: #0f172a;
+        }
+        .btn-success {
+            background: #22c55e;
+            color: white;
+            border-color: #22c55e;
+        }
+        .btn-success:hover {
+            background: #16a34a;
+        }
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            border-color: #ef4444;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+            border-color: #f59e0b;
+        }
+        .btn-warning:hover {
+            background: #d97706;
+        }
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 0.8rem;
+        }
+        .btn-outline {
+            background: transparent;
+            border-color: #cbd5e1;
+        }
+
+        /* ========== STATUS BAR ========== */
+        .status-bar {
+            background: #dcfce7;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #166534;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-bar.loading {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+        .status-bar.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            background: #22c55e;
+        }
+        .status-bar.loading .status-dot {
+            background: #eab308;
+            animation: pulse 1s infinite;
+        }
+        .status-bar.error .status-dot {
+            background: #ef4444;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        /* ========== MODE TOGGLE ========== */
+        .mode-toggle {
+            display: flex;
+            gap: 4px;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 10px;
+        }
+        .mode-toggle .btn {
+            border: none;
+            background: transparent;
+            padding: 6px 16px;
+            border-radius: 8px;
+        }
+        .mode-toggle .btn.active {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* ========== MAIN GRID ========== */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 2fr;
+            gap: 20px;
+        }
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ========== PANELS ========== */
+        .panel {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .panel-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #475569;
+        }
+        .panel-header .badge {
+            background: #e2e8f0;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: #475569;
+        }
+
+        /* ========== SEARCH ========== */
+        .search-box {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            transition: 0.2s;
+        }
+        .search-box:focus {
+            outline: none;
+            border-color: #1e293b;
+            box-shadow: 0 0 0 3px rgba(30, 41, 59, 0.1);
+        }
+
+        /* ========== LIST ITEMS ========== */
+        .list-item {
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.1s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .list-item:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        .list-item.active {
+            background: #e6effa;
+            border-color: #1e293b;
+        }
+        .list-item .item-badge {
+            background: #e2e8f0;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            color: #475569;
+            white-space: nowrap;
+        }
+        .list-item .item-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .list-item.hidden {
+            display: none;
+        }
+        .list-item .drag-handle {
+            color: #94a3b8;
+            cursor: grab;
+            margin-right: 4px;
+        }
+
+        /* ========== TABLE ========== */
+        .table-wrapper {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th {
+            background: #f8fafc;
+            text-align: left;
+            padding: 10px 8px;
+            font-weight: 600;
+            border-bottom: 2px solid #e2e8f0;
+            white-space: nowrap;
+        }
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        .doc-row.hidden {
+            display: none;
+        }
+        .doc-actions {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        /* ========== BREADCRUMB ========== */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 0;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+        }
+        .breadcrumb span {
+            color: #64748b;
+        }
+        .breadcrumb .crumb {
+            color: #1e293b;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: 0.1s;
+        }
+        .breadcrumb .crumb:hover {
+            background: #f1f5f9;
+        }
+        .breadcrumb .separator {
+            color: #94a3b8;
+        }
+
+        /* ========== USER MODE ========== */
+        .user-mode .main-grid {
+            grid-template-columns: 1fr 2fr;
+        }
+        .user-mode .countries-panel {
+            grid-column: 1;
+        }
+        .user-mode .content-panel {
+            grid-column: 2;
+        }
+        @media (max-width: 768px) {
+            .user-mode .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .user-mode .countries-panel {
+                grid-column: 1;
+            }
+            .user-mode .content-panel {
+                grid-column: 1;
+            }
+        }
+
+        /* ========== EDIT MODE ========== */
+        .edit-input {
+            width: 100%;
+            padding: 4px 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        .edit-input:focus {
+            outline: none;
+            border-color: #1e293b;
+            box-shadow: 0 0 0 2px rgba(30, 41, 59, 0.1);
+        }
+        .edit-select {
+            padding: 4px 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            background: white;
+        }
+
+        /* ========== EMPTY STATE ========== */
+        .empty-state {
+            padding: 30px 10px;
+            text-align: center;
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        /* ========== MODAL ========== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-content h3 {
+            margin-bottom: 16px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 12px;
+        }
+        .modal-content label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            color: #475569;
+        }
+        .modal-content input,
+        .modal-content select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+        }
+        .modal-content input:focus,
+        .modal-content select:focus {
+            outline: none;
+            border-color: #1e293b;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        /* ========== FOOTNOTE ========== */
+        .footnote {
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-left: 4px solid #1e293b;
+            font-size: 0.85rem;
+            color: #334155;
+            border-radius: 4px;
+        }
+        .footnote strong {
+            color: #0f172a;
+        }
+
+        /* ========== SCROLLBAR ========== */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 640px) {
+            .header {
+                padding: 16px;
+            }
+            .header h1 {
+                font-size: 1.2rem;
+            }
+            .app-container {
+                padding: 10px;
+            }
+            .panel {
+                padding: 12px;
+            }
+            .btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+            table {
+                font-size: 0.8rem;
+            }
+            th,
+            td {
+                padding: 6px 4px;
+            }
+            .breadcrumb {
+                font-size: 0.8rem;
+            }
+            .modal-content {
+                padding: 16px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .header h1 span {
+                display: none;
+            }
+            .mode-toggle .btn {
+                padding: 4px 10px;
+                font-size: 0.75rem;
+            }
+            .list-item {
+                padding: 8px 10px;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="app-wrapper" id="appWrapper">
-  <h2>
-    <span>🛂 Visa Requirements</span>
-    <span class="no-print">
-      <span class="status-bar" id="statusBar">
-        <span class="status-dot"></span>
-        <span id="statusText">Loading from Google Sheets...</span>
-      </span>
-      <button class="btn btn-print" onclick="printListView()">🖨️ Print list</button>
-    </span>
-  </h2>
 
-  <div class="toolbar no-print">
-    <button class="btn btn-outline" onclick="refreshData()">🔄 Refresh Data</button>
-    <button class="btn btn-outline" onclick="resetAll()">🏠 Home / clear</button>
-  </div>
+    <div class="app-container" id="app">
+        <!-- ===== HEADER ===== -->
+        <div class="header">
+            <h1>
+                🛂 Visa Manager
+                <span id="modeLabel">(User View)</span>
+            </h1>
+            <div class="header-actions">
+                <span class="status-bar" id="statusBar">
+                    <span class="status-dot"></span>
+                    <span id="statusText">Loading...</span>
+                </span>
+                <div class="mode-toggle">
+                    <button class="btn active" id="userModeBtn" onclick="setMode('user')">👁️ View</button>
+                    <button class="btn" id="adminModeBtn" onclick="setMode('admin')">✏️ Edit</button>
+                </div>
+                <button class="btn btn-outline" onclick="refreshData()">🔄 Refresh</button>
+            </div>
+        </div>
 
-  <div class="grid-3" id="mainGrid">
-    <div class="panel" id="countriesPanel">
-      <h3>🌍 Countries</h3>
-      <input type="text" class="search-box" id="countrySearch" placeholder="🔍 Search countries..." oninput="filterCountries()">
-      <div id="countries"></div>
+        <!-- ===== BREADCRUMB (User Mode) ===== -->
+        <div id="breadcrumbContainer" style="display:none;">
+            <div class="breadcrumb" id="breadcrumb">
+                <span>📍</span>
+                <span class="crumb" onclick="resetAll()">All Countries</span>
+                <span class="separator">›</span>
+                <span class="crumb" id="breadcrumbCountry" onclick="resetToCountry()"></span>
+                <span class="separator" id="breadcrumbSep">›</span>
+                <span class="crumb" id="breadcrumbCategory"></span>
+            </div>
+        </div>
+
+        <!-- ===== MAIN CONTENT ===== -->
+        <div class="main-grid" id="mainGrid">
+            <!-- COUNTRIES PANEL -->
+            <div class="panel countries-panel" id="countriesPanel">
+                <div class="panel-header">
+                    <h3>🌍 Countries</h3>
+                    <span class="badge" id="countryCount">0</span>
+                    <button class="btn btn-sm btn-success admin-only" onclick="showAddCountry()" style="display:none;">+ Add</button>
+                </div>
+                <input type="text" class="search-box" id="countrySearch" placeholder="🔍 Search countries..." oninput="filterCountries()">
+                <div id="countriesList"></div>
+            </div>
+
+            <!-- CATEGORIES PANEL (Admin Mode) -->
+            <div class="panel admin-only" id="categoriesPanel" style="display:block;">
+                <div class="panel-header">
+                    <h3>📂 Categories</h3>
+                    <span class="badge" id="categoryCount">0</span>
+                    <button class="btn btn-sm btn-success admin-only" onclick="showAddCategory()" style="display:none;">+ Add</button>
+                </div>
+                <input type="text" class="search-box" id="categorySearch" placeholder="🔍 Search categories..." oninput="filterCategories()">
+                <div id="categoriesList"></div>
+            </div>
+
+            <!-- CONTENT PANEL -->
+            <div class="panel content-panel" id="contentPanel">
+                <div class="panel-header">
+                    <h3 id="contentTitle">📄 Documents</h3>
+                    <span class="badge" id="docCount">0</span>
+                    <button class="btn btn-sm btn-success admin-only" onclick="showAddDocument()" style="display:none;">+ Add</button>
+                </div>
+                <input type="text" class="search-box" id="documentSearch" placeholder="🔍 Search documents..." oninput="filterDocuments()">
+                <div id="documentsList">
+                    <div class="empty-state">Select a country and category to view documents</div>
+                </div>
+                <div id="docFootnote" class="footnote" style="display:none;">
+                    <strong>📌 Important Note:</strong> All educational documents requiring attestation from MOFA must first be verified from the issuing board/university and then by IBCC/HEC.
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="panel" id="categoriesPanel">
-      <h3>📂 Categories</h3>
-      <input type="text" class="search-box" id="categorySearch" placeholder="🔍 Search categories..." oninput="filterCategories()">
-      <div id="categories"></div>
+
+    <!-- ===== MODAL ===== -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Add Item</h3>
+            <div id="modalBody"></div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" id="modalSaveBtn" onclick="saveModal()">Save</button>
+            </div>
+        </div>
     </div>
-    <div class="panel" id="docsPanel">
-      <h3>📄 Documents <span id="docContext" style="font-weight:400;font-size:0.8rem;color:#64748b;"></span></h3>
-      <input type="text" class="search-box" id="documentSearch" placeholder="🔍 Search documents..." oninput="filterDocuments()">
-      <div id="docs"></div>
-    </div>
-  </div>
-</div>
 
-<script>
-// ---------- CONFIGURATION ----------
-// REPLACE THIS WITH YOUR GOOGLE SHEET ID
-const SHEET_ID = '1OudfKywtYmvv0m3RHDxTuua_bCabQ9uutFpw-MgqhJ8';
+    <script>
+        // ============================================================
+        // CONFIGURATION
+        // ============================================================
+        // REPLACE WITH YOUR GOOGLE SHEET ID
+        const SHEET_ID = 'YOUR_SHEET_ID_HERE';
 
-// ---------- GLOBAL STATE ----------
-let visaData = {};
-let selectedCountry = null;
-let selectedCategory = null;
-let isLoading = false;
+        // ============================================================
+        // STATE
+        // ============================================================
+        let visaData = {};
+        let countries = [];
+        let categories = [];
+        let selectedCountry = null;
+        let selectedCategory = null;
+        let currentMode = 'user'; // 'user' or 'admin'
+        let isLoading = false;
+        let modalCallback = null;
 
-// DOM refs
-const countriesDiv = document.getElementById("countries");
-const categoriesDiv = document.getElementById("categories");
-const docsDiv = document.getElementById("docs");
-const docContext = document.getElementById("docContext");
-const statusBar = document.getElementById("statusBar");
-const statusText = document.getElementById("statusText");
+        // DOM refs
+        const countriesList = document.getElementById('countriesList');
+        const categoriesList = document.getElementById('categoriesList');
+        const documentsList = document.getElementById('documentsList');
+        const countryCount = document.getElementById('countryCount');
+        const categoryCount = document.getElementById('categoryCount');
+        const docCount = document.getElementById('docCount');
+        const contentTitle = document.getElementById('contentTitle');
+        const docFootnote = document.getElementById('docFootnote');
+        const statusBar = document.getElementById('statusBar');
+        const statusText = document.getElementById('statusText');
+        const modeLabel = document.getElementById('modeLabel');
+        const breadcrumbContainer = document.getElementById('breadcrumbContainer');
+        const breadcrumbCountry = document.getElementById('breadcrumbCountry');
+        const breadcrumbCategory = document.getElementById('breadcrumbCategory');
+        const breadcrumbSep = document.getElementById('breadcrumbSep');
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalBody = document.getElementById('modalBody');
 
-// ---------- STATUS FUNCTIONS ----------
-function setStatus(message, type = 'loading') {
-  statusBar.className = 'status-bar';
-  if (type === 'loading') statusBar.classList.add('loading');
-  if (type === 'error') statusBar.classList.add('error');
-  statusText.textContent = message;
-}
+        // ============================================================
+        // STATUS FUNCTIONS
+        // ============================================================
+        function setStatus(message, type = 'loading') {
+            statusBar.className = 'status-bar';
+            if (type === 'loading') statusBar.classList.add('loading');
+            if (type === 'error') statusBar.classList.add('error');
+            statusText.textContent = message;
+        }
 
-// ---------- LOAD DATA FROM GOOGLE SHEETS ----------
-async function loadDataFromGoogleSheets() {
-  if (isLoading) return;
-  isLoading = true;
-  setStatus('Loading from Google Sheets...', 'loading');
+        // ============================================================
+        // MODE TOGGLE
+        // ============================================================
+        window.setMode = function(mode) {
+            currentMode = mode;
+            const isAdmin = mode === 'admin';
+            document.getElementById('userModeBtn').classList.toggle('active', !isAdmin);
+            document.getElementById('adminModeBtn').classList.toggle('active', isAdmin);
+            modeLabel.textContent = isAdmin ? '(Admin Mode)' : '(User View)';
 
-  try {
-    // Fetch data from Google Sheets as CSV
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch data from Google Sheets');
-    }
-    
-    const csvText = await response.text();
-    const data = parseCSV(csvText);
-    
-    if (data.length === 0) {
-      throw new Error('No data found in the sheet');
-    }
+            // Show/hide admin elements
+            document.querySelectorAll('.admin-only').forEach(el => {
+                el.style.display = isAdmin ? '' : 'none';
+            });
 
-    // Build the visaData structure
-    visaData = {};
-    data.forEach(row => {
-      const country = row.Country?.trim();
-      const category = row.Category?.trim();
-      const docName = row['Document Name']?.trim();
-      const validity = row.Validity?.trim() || '—';
-      const mofa = row.MOFA?.trim() || 'No';
-      const apostille = row.Apostille?.trim() || 'No';
-      const translation = row.Translation?.trim() || 'No';
+            // Show/hide categories panel in user mode
+            document.getElementById('categoriesPanel').style.display = isAdmin ? '' : 'none';
 
-      if (country && category && docName) {
-        if (!visaData[country]) visaData[country] = {};
-        if (!visaData[country][category]) visaData[country][category] = [];
-        visaData[country][category].push({
-          name: docName,
-          validity: validity,
-          mofa: mofa,
-          apostille: apostille,
-          translation: translation
+            // Adjust grid layout
+            const grid = document.getElementById('mainGrid');
+            if (!isAdmin) {
+                grid.style.gridTemplateColumns = '1fr 2fr';
+                breadcrumbContainer.style.display = '';
+            } else {
+                grid.style.gridTemplateColumns = '1fr 1fr 2fr';
+                breadcrumbContainer.style.display = 'none';
+            }
+
+            // Update breadcrumb
+            updateBreadcrumb();
+
+            // Re-render
+            renderAll();
+        }
+
+        // ============================================================
+        // LOAD DATA FROM GOOGLE SHEETS
+        // ============================================================
+        async function loadDataFromGoogleSheets() {
+            if (isLoading) return;
+            isLoading = true;
+            setStatus('Loading from Google Sheets...', 'loading');
+
+            try {
+                const url =
+                    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+                const response = await fetch(url);
+
+                if (!response.ok) throw new Error('Failed to fetch data');
+
+                const csvText = await response.text();
+                const data = parseCSV(csvText);
+
+                if (data.length === 0) throw new Error('No data found');
+
+                // Build visaData
+                visaData = {};
+                data.forEach(row => {
+                    const country = row.Country?.trim();
+                    const category = row.Category?.trim();
+                    const docName = row['Document Name']?.trim();
+                    const validity = row.Validity?.trim() || '—';
+                    const mofa = row.MOFA?.trim() || 'No';
+                    const apostille = row.Apostille?.trim() || 'No';
+                    const translation = row.Translation?.trim() || 'No';
+
+                    if (country && category && docName) {
+                        if (!visaData[country]) visaData[country] = {};
+                        if (!visaData[country][category]) visaData[country][category] = [];
+                        visaData[country][category].push({
+                            name: docName,
+                            validity: validity,
+                            mofa: mofa,
+                            apostille: apostille,
+                            translation: translation
+                        });
+                    }
+                });
+
+                // Extract unique countries and categories
+                countries = Object.keys(visaData).sort();
+                const allCats = new Set();
+                Object.values(visaData).forEach(catMap => {
+                    Object.keys(catMap).forEach(cat => allCats.add(cat));
+                });
+                categories = Array.from(allCats).sort();
+
+                // Cache data
+                localStorage.setItem('visaDataCache', JSON.stringify(visaData));
+
+                setStatus(`✅ Loaded ${countries.length} countries, ${categories.length} categories`, 'connected');
+                renderAll();
+
+            } catch (error) {
+                console.error('Error:', error);
+                setStatus('❌ Error: ' + error.message, 'error');
+
+                // Try cache
+                const cached = localStorage.getItem('visaDataCache');
+                if (cached) {
+                    try {
+                        visaData = JSON.parse(cached);
+                        countries = Object.keys(visaData).sort();
+                        setStatus('⚠️ Using cached data (offline)', 'error');
+                        renderAll();
+                    } catch (e) {
+                        console.error('Cache error:', e);
+                    }
+                }
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        // ============================================================
+        // PARSE CSV
+        // ============================================================
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n');
+            if (lines.length === 0) return [];
+
+            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
+            const result = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+
+                const values = [];
+                let current = '';
+                let inQuotes = false;
+                for (let char of lines[i]) {
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        values.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                values.push(current.trim());
+
+                const row = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index] || '';
+                });
+                result.push(row);
+            }
+            return result;
+        }
+
+        // ============================================================
+        // REFRESH
+        // ============================================================
+        window.refreshData = function() {
+            loadDataFromGoogleSheets();
+        }
+
+        // ============================================================
+        // BREADCRUMB
+        // ============================================================
+        function updateBreadcrumb() {
+            if (currentMode === 'admin') {
+                breadcrumbContainer.style.display = 'none';
+                return;
+            }
+
+            breadcrumbContainer.style.display = '';
+            breadcrumbCountry.textContent = selectedCountry || '';
+            breadcrumbCategory.textContent = selectedCategory || 'Select a category';
+
+            // Show/hide separators
+            const hasCountry = !!selectedCountry;
+            const hasCategory = !!selectedCategory;
+            breadcrumbCountry.style.display = hasCountry ? '' : 'none';
+            breadcrumbCategory.style.display = hasCategory ? '' : 'none';
+            breadcrumbSep.style.display = (hasCountry && hasCategory) ? '' : 'none';
+
+            // Update click handlers
+            breadcrumbCountry.onclick = () => {
+                if (selectedCountry) resetToCountry();
+            };
+        }
+
+        window.resetToCountry = function() {
+            selectedCategory = null;
+            renderAll();
+            updateBreadcrumb();
+        }
+
+        // ============================================================
+        // SEARCH FUNCTIONS
+        // ============================================================
+        window.filterCountries = function() {
+            const term = document.getElementById('countrySearch').value.toLowerCase();
+            const items = countriesList.querySelectorAll('.list-item');
+            let visible = 0;
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(term) || !term) {
+                    item.classList.remove('hidden');
+                    visible++;
+                } else {
+                    item.classList.add('hidden');
+                }
+            });
+            const empty = countriesList.querySelector('.empty-state');
+            if (empty) empty.style.display = (!visible && items.length > 0) ? '' : 'none';
+        }
+
+        window.filterCategories = function() {
+            const term = document.getElementById('categorySearch').value.toLowerCase();
+            const items = categoriesList.querySelectorAll('.list-item');
+            let visible = 0;
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(term) || !term) {
+                    item.classList.remove('hidden');
+                    visible++;
+                } else {
+                    item.classList.add('hidden');
+                }
+            });
+            const empty = categoriesList.querySelector('.empty-state');
+            if (empty) empty.style.display = (!visible && items.length > 0) ? '' : 'none';
+        }
+
+        window.filterDocuments = function() {
+            const term = document.getElementById('documentSearch').value.toLowerCase();
+            const rows = documentsList.querySelectorAll('.doc-row');
+            let visible = 0;
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(term) || !term) {
+                    row.classList.remove('hidden');
+                    visible++;
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+            const empty = documentsList.querySelector('.empty-state');
+            if (empty) empty.style.display = (!visible && rows.length > 0) ? '' : 'none';
+        }
+
+        // ============================================================
+        // RENDER FUNCTIONS
+        // ============================================================
+        function renderAll() {
+            renderCountries();
+            renderCategories();
+            renderDocuments();
+            updateBreadcrumb();
+            updateCounts();
+        }
+
+        function renderCountries() {
+            countriesList.innerHTML = '';
+            const sorted = countries;
+            if (sorted.length === 0) {
+                countriesList.innerHTML = '<div class="empty-state">No countries found</div>';
+                return;
+            }
+            sorted.forEach(country => {
+                const div = document.createElement('div');
+                div.className = `list-item${selectedCountry === country ? ' active' : ''}`;
+                const catCount = Object.keys(visaData[country] || {}).length;
+                div.innerHTML = `
+                    <span>${country}</span>
+                    <span style="display:flex;align-items:center;gap:6px;">
+                        <span class="item-badge">${catCount} cats</span>
+                        ${currentMode === 'admin' ? `
+                        <span class="item-actions">
+                            <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); editCountry('${country}')">✎</button>
+                            <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteCountry('${country}')">✕</button>
+                        </span>` : ''}
+                    </span>
+                `;
+                div.onclick = () => selectCountry(country);
+                countriesList.appendChild(div);
+            });
+        }
+
+        function renderCategories() {
+            categoriesList.innerHTML = '';
+            if (!selectedCountry || !visaData[selectedCountry]) {
+                categoriesList.innerHTML = '<div class="empty-state">Select a country</div>';
+                return;
+            }
+            const catKeys = Object.keys(visaData[selectedCountry]).sort();
+            if (catKeys.length === 0) {
+                categoriesList.innerHTML = '<div class="empty-state">No categories</div>';
+                return;
+            }
+            catKeys.forEach(cat => {
+                const div = document.createElement('div');
+                div.className = `list-item${selectedCategory === cat ? ' active' : ''}`;
+                const docCount = visaData[selectedCountry][cat].length;
+                div.innerHTML = `
+                    <span>${cat}</span>
+                    <span style="display:flex;align-items:center;gap:6px;">
+                        <span class="item-badge">${docCount} docs</span>
+                        ${currentMode === 'admin' ? `
+                        <span class="item-actions">
+                            <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); editCategory('${cat}')">✎</button>
+                            <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteCategory('${cat}')">✕</button>
+                        </span>` : ''}
+                    </span>
+                `;
+                div.onclick = () => selectCategory(cat);
+                categoriesList.appendChild(div);
+            });
+        }
+
+        function renderDocuments() {
+            documentsList.innerHTML = '';
+            if (!selectedCountry || !selectedCategory || !visaData[selectedCountry]?.[selectedCategory]) {
+                documentsList.innerHTML = '<div class="empty-state">Select a category to view documents</div>';
+                docFootnote.style.display = 'none';
+                contentTitle.textContent = '📄 Documents';
+                return;
+            }
+
+            const docs = visaData[selectedCountry][selectedCategory];
+            contentTitle.textContent = `📄 Documents (${selectedCountry} / ${selectedCategory})`;
+            docFootnote.style.display = '';
+
+            if (docs.length === 0) {
+                documentsList.innerHTML = '<div class="empty-state">No documents</div>';
+                return;
+            }
+
+            let html = `<div class="table-wrapper"><table>
+                <thead><tr><th>Document</th><th>Validity</th><th>MOFA</th><th>Apostille</th><th>Translation</th>`;
+            if (currentMode === 'admin') html += `<th>Actions</th>`;
+            html += `</tr></thead><tbody>`;
+
+            docs.forEach((d, idx) => {
+                html += `<tr class="doc-row">
+                    <td><strong>${d.name}</strong></td>
+                    <td>${d.validity}</td>
+                    <td>${d.mofa}</td>
+                    <td>${d.apostille}</td>
+                    <td>${d.translation}</td>`;
+                if (currentMode === 'admin') {
+                    html += `<td>
+                        <div class="doc-actions">
+                            <button class="btn btn-sm btn-outline" onclick="editDocument(${idx})">✎</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteDocument(${idx})">✕</button>
+                        </div>
+                    </td>`;
+                }
+                html += `</tr>`;
+            });
+
+            html += `</tbody></table></div>`;
+            html += `<div class="footnote">
+                <strong>📌 Important Note:</strong> All educational documents requiring attestation from MOFA must first be verified from the issuing board/university and then by IBCC/HEC.
+            </div>`;
+            documentsList.innerHTML = html;
+        }
+
+        function updateCounts() {
+            countryCount.textContent = countries.length;
+            const catCount = selectedCountry ? Object.keys(visaData[selectedCountry] || {}).length : 0;
+            categoryCount.textContent = catCount;
+            const docCountVal = selectedCountry && selectedCategory ?
+                (visaData[selectedCountry]?.[selectedCategory]?.length || 0) : 0;
+            docCount.textContent = docCountVal;
+        }
+
+        // ============================================================
+        // SELECTION FUNCTIONS
+        // ============================================================
+        window.selectCountry = function(country) {
+            selectedCountry = country;
+            selectedCategory = null;
+            renderAll();
+            updateBreadcrumb();
+            document.getElementById('countrySearch').value = '';
+            filterCountries();
+            document.getElementById('categorySearch').value = '';
+            filterCategories();
+        }
+
+        window.selectCategory = function(cat) {
+            selectedCategory = cat;
+            renderAll();
+            updateBreadcrumb();
+            document.getElementById('categorySearch').value = '';
+            filterCategories();
+            document.getElementById('documentSearch').value = '';
+            filterDocuments();
+        }
+
+        window.resetAll = function() {
+            selectedCountry = null;
+            selectedCategory = null;
+            renderAll();
+            updateBreadcrumb();
+            ['countrySearch', 'categorySearch', 'documentSearch'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            filterCountries();
+            filterCategories();
+            filterDocuments();
+        }
+
+        // ============================================================
+        // ADMIN CRUD OPERATIONS (Google Sheets integration)
+        // ============================================================
+        // Note: These functions update the data structure but you'll need
+        // to sync back to Google Sheets manually or via a backend.
+        // For now, they update the local data and cache.
+
+        function updateDataAndSave() {
+            localStorage.setItem('visaDataCache', JSON.stringify(visaData));
+            countries = Object.keys(visaData).sort();
+            const allCats = new Set();
+            Object.values(visaData).forEach(catMap => {
+                Object.keys(catMap).forEach(cat => allCats.add(cat));
+            });
+            categories = Array.from(allCats).sort();
+            renderAll();
+            updateBreadcrumb();
+            // Note: To persist to Google Sheets, you'd need to use the Sheets API
+            // or manually copy the data back to the sheet.
+            alert('✅ Changes saved locally! To keep them permanent, copy the data back to Google Sheets.');
+        }
+
+        // ============================================================
+        // COUNTRY CRUD
+        // ============================================================
+        window.showAddCountry = function() {
+            modalTitle.textContent = 'Add Country';
+            modalBody.innerHTML = `
+                <label>Country Name</label>
+                <input type="text" id="newCountryInput" placeholder="Enter country name...">
+            `;
+            modalCallback = () => {
+                const name = document.getElementById('newCountryInput').value.trim();
+                if (!name) { alert('Please enter a country name'); return; }
+                if (visaData[name]) { alert('Country already exists'); return; }
+                visaData[name] = {};
+                updateDataAndSave();
+                closeModal();
+            };
+            modal.classList.add('active');
+            setTimeout(() => document.getElementById('newCountryInput')?.focus(), 100);
+        }
+
+        window.editCountry = function(oldName) {
+            modalTitle.textContent = 'Edit Country';
+            modalBody.innerHTML = `
+                <label>Country Name</label>
+                <input type="text" id="editCountryInput" value="${oldName}">
+            `;
+            modalCallback = () => {
+                const newName = document.getElementById('editCountryInput').value.trim();
+                if (!newName) { alert('Please enter a country name'); return; }
+                if (newName !== oldName && visaData[newName]) { alert('Country already exists'); return; }
+                visaData[newName] = visaData[oldName];
+                delete visaData[oldName];
+                if (selectedCountry === oldName) selectedCountry = newName;
+                updateDataAndSave();
+                closeModal();
+            };
+            modal.classList.add('active');
+            setTimeout(() => document.getElementById('editCountryInput')?.focus(), 100);
+        }
+
+        window.deleteCountry = function(country) {
+            if (!confirm(`Delete "${country}" and all its data?`)) return;
+            delete visaData[country];
+            if (selectedCountry === country) { selectedCountry = null;
+                selectedCategory = null; }
+            updateDataAndSave();
+        }
+
+        // ============================================================
+        // CATEGORY CRUD
+        // ============================================================
+        window.showAddCategory = function() {
+            if (!selectedCountry) { alert('Please select a country first'); return; }
+            modalTitle.textContent = 'Add Category';
+            modalBody.innerHTML = `
+                <label>Category Name</label>
+                <input type="text" id="newCategoryInput" placeholder="Enter category name...">
+            `;
+            modalCallback = () => {
+                const name = document.getElementById('newCategoryInput').value.trim();
+                if (!name) { alert('Please enter a category name'); return; }
+                if (visaData[selectedCountry][name]) { alert('Category already exists'); return; }
+                visaData[selectedCountry][name] = [];
+                selectedCategory = name;
+                updateDataAndSave();
+                closeModal();
+            };
+            modal.classList.add('active');
+            setTimeout(() => document.getElementById('newCategoryInput')?.focus(), 100);
+        }
+
+        window.editCategory = function(oldName) {
+            if (!selectedCountry) return;
+            modalTitle.textContent = 'Edit Category';
+            modalBody.innerHTML = `
+                <label>Category Name</label>
+                <input type="text" id="editCategoryInput" value="${oldName}">
+            `;
+            modalCallback = () => {
+                const newName = document.getElementById('editCategoryInput').value.trim();
+                if (!newName) { alert('Please enter a category name'); return; }
+                if (newName !== oldName && visaData[selectedCountry][newName]) { alert('Category already exists');
+                    return; }
+                visaData[selectedCountry][newName] = visaData[selectedCountry][oldName];
+                delete visaData[selectedCountry][oldName];
+                if (selectedCategory === oldName) selectedCategory = newName;
+                updateDataAndSave();
+                closeModal();
+            };
+            modal.classList.add('active');
+            setTimeout(() => document.getElementById('editCategoryInput')?.focus(), 100);
+        }
+
+        window.deleteCategory = function(cat) {
+            if (!selectedCountry) return;
+            if (!confirm(`Delete category "${cat}"?`)) return;
+            delete visaData[selectedCountry][cat];
+            if (selectedCategory === cat) selectedCategory = null;
+            updateDataAndSave();
+        }
+
+        // ============================================================
+        // DOCUMENT CRUD
+        // ============================================================
+        window.showAddDocument = function() {
+            if (!selectedCountry || !selectedCategory) {
+                alert('Please select a country and category first');
+                return;
+            }
+            modalTitle.textContent = 'Add Document';
+            modalBody.innerHTML = `
+                <label>Document Name</label>
+                <input type="text" id="newDocName" placeholder="Enter document name...">
+                <label>Validity</label>
+                <input type="text" id="newDocValidity" placeholder="e.g., 6 months" value="—">
+                <label>MOFA Required?</label>
+                <select id="newDocMofa"><option value="No">No</option><option value="Yes">Yes</option></select>
+                <label>Apostille Required?</label>
+                <select id="newDocApostille"><option value="No">No</option><option value="Yes">Yes</option></select>
+                <label>Translation Required?</label>
+                <select id="newDocTranslation"><option value="No">No</option><option value="Yes">Yes</option></select>
+            `;
+            modalCallback = () => {
+                const name = document.getElementById('newDocName').value.trim();
+                if (!name) { alert('Please enter a document name'); return; }
+                const docs = visaData[selectedCountry][selectedCategory];
+                if (docs.find(d => d.name === name)) { alert('Document already exists'); return; }
+                docs.push({
+                    name: name,
+                    validity: document.getElementById('newDocValidity').value.trim() || '—',
+                    mofa: document.getElementById('newDocMofa').value,
+                    apostille: document.getElementById('newDocApostille').value,
+                    translation: document.getElementById('newDocTranslation').value
+                });
+                updateDataAndSave();
+                closeModal();
+            };
+            modal.classList.add('active');
+            setTimeout(() => document.getElementById('newDocName')?.focus(), 100);
+        }
+
+        window.editDocument = function(index) {
+            if (!selectedCountry || !selectedCategory) return;
+            const docs = visaData[selectedCountry][selectedCategory];
+            const doc = docs[index];
+            if (!doc) return;
+
+            modalTitle.textContent = 'Edit Document';
+            modalBody.innerHTML = `
+                <label>Document Name</label>
+                <input type="text" id="editDocName" value="${doc.name}">
+                <label>Validity</label>
+                <input type="text" id="editDocValidity" value="${doc.validity}">
+                <label>MOFA Required?</label>
+                <select id="editDocMofa"><option value="No" ${doc.mofa === 'No' ? 'selected' : ''}>No</option><option value="Yes" ${doc.mofa === 'Yes' ? 'selected' : ''}>Yes</option></select>
+                <label>Apostille Required?</label>
+                <select id="editDocApostille"><option value="No" ${doc.apostille === 'No' ? 'selected' : ''}>No</option><option value="Yes" ${doc.apostille === 'Yes' ? 'selected' : ''}>Yes</option></select>
+                <label>Translation Required?</label>
+                <select id="editDocTranslation"><option value="No" ${doc.translation === 'No' ? 'selected' : ''}>No</option><option value="Yes" ${doc.translation === 'Yes' ? 'selected' : ''}>Yes</option></select>
+            `;
+            modalCallback = () => {
+                const name = document.getElementById('editDocName').value.trim();
+                if (!name) { alert('Please enter a document name'); return; }
+                docs[index] = {
+                    name: name,
+                    validity: document.getElementById('editDocValidity').value.trim() || '—',
+                    mofa: document.getElementById('editDocMofa').value,
+                    apostille: document.getElementById('editDocApostille').value,
+                    translation: document.getElementById('editDocTranslation').value
+                };
+                updateDataAndSave();
+                closeModal();
+            };
+            modal.classList.add('active');
+            setTimeout(() => document.getElementById('editDocName')?.focus(), 100);
+        }
+
+        window.deleteDocument = function(index) {
+            if (!selectedCountry || !selectedCategory) return;
+            const docs = visaData[selectedCountry][selectedCategory];
+            if (!confirm(`Delete "${docs[index].name}"?`)) return;
+            docs.splice(index, 1);
+            updateDataAndSave();
+        }
+
+        // ============================================================
+        // MODAL FUNCTIONS
+        // ============================================================
+        window.closeModal = function() {
+            modal.classList.remove('active');
+            modalCallback = null;
+        }
+
+        window.saveModal = function() {
+            if (modalCallback) modalCallback();
+        }
+
+        // Close modal on background click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
         });
-      }
-    });
 
-    setStatus(`✅ Loaded data from ${Object.keys(visaData).length} countries`, 'connected');
-    renderAll();
-  } catch (error) {
-    console.error('Error loading data:', error);
-    setStatus('❌ Error loading data: ' + error.message, 'error');
-    
-    // Try to load from cache
-    const cached = localStorage.getItem('visaDataCache');
-    if (cached) {
-      try {
-        visaData = JSON.parse(cached);
-        setStatus('⚠️ Using cached data (offline mode)', 'error');
-        renderAll();
-      } catch (e) {
-        console.error('Error loading cache:', e);
-      }
-    }
-  } finally {
-    isLoading = false;
-  }
-}
+        // ============================================================
+        // PRINT
+        // ============================================================
+        window.printListView = function() {
+            if (!selectedCountry || !selectedCategory) {
+                alert('Select a country and category to print.');
+                return;
+            }
+            const country = selectedCountry;
+            const category = selectedCategory;
+            const docs = visaData[country]?.[category] || [];
+            if (docs.length === 0) {
+                alert('No documents to print.');
+                return;
+            }
 
-// ---------- PARSE CSV ----------
-function parseCSV(csvText) {
-  const lines = csvText.split('\n');
-  if (lines.length === 0) return [];
-  
-  // Parse headers
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-  
-  const result = [];
-  for (let i = 1; i < lines.length; i++) {
-    if (!lines[i].trim()) continue;
-    
-    // Handle quoted values properly
-    const values = [];
-    let current = '';
-    let inQuotes = false;
-    for (let char of lines[i]) {
-      if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
-        values.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-    values.push(current.trim());
-    
-    const row = {};
-    headers.forEach((header, index) => {
-      row[header] = values[index] || '';
-    });
-    result.push(row);
-  }
-  return result;
-}
+            const printWindow = window.open('', '_blank', 'width=800,height=600');
+            if (!printWindow) {
+                alert('Please allow popups for printing.');
+                return;
+            }
 
-// ---------- REFRESH DATA ----------
-window.refreshData = function() {
-  loadDataFromGoogleSheets();
-}
+            let rows = docs.map(d => `
+                <tr>
+                    <td>${d.name}</td>
+                    <td>${d.validity}</td>
+                    <td>${d.mofa}</td>
+                    <td>${d.apostille}</td>
+                    <td>${d.translation}</td>
+                </tr>
+            `).join('');
 
-// ---------- SEARCH FUNCTIONS ----------
-window.filterCountries = function() {
-  const searchTerm = document.getElementById('countrySearch').value.toLowerCase();
-  const boxes = countriesDiv.querySelectorAll('.box');
-  let hasVisible = false;
-  boxes.forEach(box => {
-    const text = box.textContent.toLowerCase();
-    if (text.includes(searchTerm) || searchTerm === '') {
-      box.classList.remove('hidden');
-      hasVisible = true;
-    } else {
-      box.classList.add('hidden');
-    }
-  });
-  const emptyState = countriesDiv.querySelector('.empty-state');
-  if (emptyState) {
-    if (!hasVisible && boxes.length > 0) {
-      emptyState.style.display = 'block';
-      emptyState.textContent = 'No matching countries found';
-    } else {
-      emptyState.style.display = 'none';
-    }
-  }
-}
+            printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head><title>Visa documents - ${country} ${category}</title>
+            <style>
+                body { font-family: system-ui, sans-serif; padding: 30px; }
+                h2 { border-bottom: 2px solid #333; padding-bottom: 6px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                th { background: #1e293b; color: white; padding: 10px; text-align: left; }
+                td { padding: 8px 10px; border-bottom: 1px solid #ddd; }
+                .meta { color: #475569; margin-bottom: 8px; }
+                .footer { margin-top: 30px; color: #64748b; font-size: 0.8rem; }
+                .footnote { margin-top: 20px; padding: 15px; background: #f8fafc; border-left: 4px solid #1e293b; font-size: 0.85rem; color: #334155; border-radius: 4px; }
+                .footnote strong { color: #0f172a; }
+            </style>
+            </head>
+            <body>
+                <h2>📋 Visa requirements · ${country}</h2>
+                <div class="meta"><strong>Category:</strong> ${category} &nbsp;|&nbsp; <strong>Documents:</strong> ${docs.length}</div>
+                <table>
+                    <thead><tr><th>Document</th><th>Validity</th><th>MOFA</th><th>Apostille</th><th>Translation</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+                <div class="footnote"><strong>📌 Important Note:</strong> All educational documents requiring attestation from MOFA must first be verified from the issuing board/university and then by IBCC/HEC.</div>
+                <div class="footer">Printed from Visa Manager · ${new Date().toLocaleString()}</div>
+            </body>
+            </html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+        }
 
-window.filterCategories = function() {
-  const searchTerm = document.getElementById('categorySearch').value.toLowerCase();
-  const boxes = categoriesDiv.querySelectorAll('.box');
-  let hasVisible = false;
-  boxes.forEach(box => {
-    const text = box.textContent.toLowerCase();
-    if (text.includes(searchTerm) || searchTerm === '') {
-      box.classList.remove('hidden');
-      hasVisible = true;
-    } else {
-      box.classList.add('hidden');
-    }
-  });
-  const emptyState = categoriesDiv.querySelector('.empty-state');
-  if (emptyState) {
-    if (!hasVisible && boxes.length > 0) {
-      emptyState.style.display = 'block';
-      emptyState.textContent = 'No matching categories found';
-    } else {
-      emptyState.style.display = 'none';
-    }
-  }
-}
+        // ============================================================
+        // INIT
+        // ============================================================
+        // Set default mode
+        setMode('user');
 
-window.filterDocuments = function() {
-  const searchTerm = document.getElementById('documentSearch').value.toLowerCase();
-  const rows = docsDiv.querySelectorAll('.doc-row');
-  let hasVisible = false;
-  rows.forEach(row => {
-    const text = row.textContent.toLowerCase();
-    if (text.includes(searchTerm) || searchTerm === '') {
-      row.classList.remove('hidden');
-      hasVisible = true;
-    } else {
-      row.classList.add('hidden');
-    }
-  });
-  const emptyState = docsDiv.querySelector('.empty-state');
-  if (emptyState) {
-    if (!hasVisible && rows.length > 0) {
-      emptyState.style.display = 'block';
-      emptyState.textContent = 'No matching documents found';
-    } else {
-      emptyState.style.display = 'none';
-    }
-  }
-}
+        // Load data
+        loadDataFromGoogleSheets();
 
-// ---------- RENDER FUNCTIONS ----------
-function renderCountries() {
-  countriesDiv.innerHTML = "";
-  const countryKeys = Object.keys(visaData).sort();
-  if (countryKeys.length === 0) {
-    countriesDiv.innerHTML = '<div class="empty-state">No countries found in Google Sheets</div>';
-    return;
-  }
-  
-  countryKeys.forEach(country => {
-    const div = document.createElement("div");
-    div.className = `box${selectedCountry === country ? ' active' : ''}`;
-    const catCount = Object.keys(visaData[country]).length;
-    div.innerHTML = `
-      <span>${country}</span>
-      <span class="badge">${catCount} cats</span>
-    `;
-    div.onclick = () => selectCountry(country);
-    countriesDiv.appendChild(div);
-  });
-}
+        // Auto-refresh every 60 seconds
+        setInterval(() => {
+            if (!isLoading) loadDataFromGoogleSheets();
+        }, 60000);
 
-function renderCategories() {
-  categoriesDiv.innerHTML = "";
-  if (!selectedCountry || !visaData[selectedCountry]) {
-    categoriesDiv.innerHTML = '<div class="empty-state">Select a country</div>';
-    return;
-  }
-  const catKeys = Object.keys(visaData[selectedCountry]).sort();
-  if (catKeys.length === 0) {
-    categoriesDiv.innerHTML = '<div class="empty-state">No categories</div>';
-    return;
-  }
-  
-  catKeys.forEach(cat => {
-    const div = document.createElement("div");
-    div.className = `box${selectedCategory === cat ? ' active' : ''}`;
-    const count = visaData[selectedCountry][cat].length;
-    div.innerHTML = `
-      <span>${cat}</span>
-      <span class="badge">${count} docs</span>
-    `;
-    div.onclick = () => selectCategory(cat);
-    categoriesDiv.appendChild(div);
-  });
-}
+        console.log('✅ Visa Manager ready! Mode: User View');
+        console.log('📊 Data loaded from Google Sheets');
+        console.log('👆 Click "Edit" to switch to admin mode');
+    </script>
 
-function renderDocs() {
-  docsDiv.innerHTML = "";
-  if (!selectedCountry || !selectedCategory || !visaData[selectedCountry]?.[selectedCategory]) {
-    docContext.innerText = '';
-    docsDiv.innerHTML = '<div class="empty-state">Select a category to see documents</div>';
-    return;
-  }
-  const docs = visaData[selectedCountry][selectedCategory];
-  docContext.innerText = `— ${selectedCountry} / ${selectedCategory}`;
-  
-  if (docs.length === 0) {
-    docsDiv.innerHTML = '<div class="empty-state">No documents</div>';
-    return;
-  }
-
-  let html = `<table>
-    <thead><tr><th>Document</th><th>Validity</th><th>MOFA</th><th>Apostille</th><th>Translation</th></tr></thead><tbody>`;
-  
-  docs.forEach(d => {
-    html += `<tr>
-      <td><strong>${d.name}</strong></td>
-      <td>${d.validity}</td>
-      <td>${d.mofa}</td>
-      <td>${d.apostille}</td>
-      <td>${d.translation}</td>
-    </tr>`;
-  });
-  
-  html += `</tbody></table>
-    <div class="footnote">
-      <strong>📌 Important Note:</strong> All educational documents requiring attestation from MOFA must first be verified from the issuing board/university and then by IBCC/HEC.
-    </div>
-  `;
-  docsDiv.innerHTML = html;
-}
-
-// ---------- ACTIONS ----------
-window.selectCountry = function(country) {
-  selectedCountry = country;
-  selectedCategory = null;
-  renderCountries();
-  renderCategories();
-  renderDocs();
-  document.getElementById('countrySearch').value = '';
-  window.filterCountries();
-  document.getElementById('categorySearch').value = '';
-  window.filterCategories();
-}
-
-window.selectCategory = function(cat) {
-  selectedCategory = cat;
-  renderCategories();
-  renderDocs();
-  document.getElementById('categorySearch').value = '';
-  window.filterCategories();
-  document.getElementById('documentSearch').value = '';
-  window.filterDocuments();
-}
-
-window.resetAll = function() {
-  selectedCountry = null;
-  selectedCategory = null;
-  renderCountries();
-  renderCategories();
-  renderDocs();
-  docContext.innerText = '';
-  document.getElementById('countrySearch').value = '';
-  document.getElementById('categorySearch').value = '';
-  document.getElementById('documentSearch').value = '';
-  window.filterCountries();
-  window.filterCategories();
-  window.filterDocuments();
-}
-
-// ---------- PRINT ----------
-window.printListView = function() {
-  if (!selectedCountry || !selectedCategory) {
-    alert("Select a country and category to print.");
-    return;
-  }
-  const country = selectedCountry;
-  const category = selectedCategory;
-  const docs = visaData[country]?.[category] || [];
-  if (docs.length === 0) {
-    alert("No documents to print.");
-    return;
-  }
-
-  const printWindow = window.open('', '_blank', 'width=800,height=600');
-  if (!printWindow) {
-    alert("Please allow popups for printing.");
-    return;
-  }
-
-  let rows = docs.map(d => `
-    <tr>
-      <td>${d.name}</td>
-      <td>${d.validity}</td>
-      <td>${d.mofa}</td>
-      <td>${d.apostille}</td>
-      <td>${d.translation}</td>
-    </tr>
-  `).join('');
-
-  const html = `
-  <!DOCTYPE html>
-  <html>
-  <head><title>Visa documents - ${country} ${category}</title>
-  <style>
-    body { font-family: system-ui, sans-serif; padding: 30px; }
-    h2 { border-bottom: 2px solid #333; padding-bottom: 6px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th { background: #1e293b; color: white; padding: 10px; text-align: left; }
-    td { padding: 8px 10px; border-bottom: 1px solid #ddd; }
-    .meta { color: #475569; margin-bottom: 8px; }
-    .footer { margin-top: 30px; color: #64748b; font-size: 0.8rem; }
-    .footnote { 
-      margin-top: 20px; 
-      padding: 15px; 
-      background: #f8fafc; 
-      border-left: 4px solid #1e293b; 
-      font-size: 0.85rem; 
-      color: #334155;
-      border-radius: 4px;
-    }
-    .footnote strong { color: #0f172a; }
-  </style>
-  </head>
-  <body>
-    <h2>📋 Visa requirements · ${country}</h2>
-    <div class="meta"><strong>Category:</strong> ${category} &nbsp;|&nbsp; <strong>Documents:</strong> ${docs.length}</div>
-    <table>
-      <thead><tr><th>Document</th><th>Validity</th><th>MOFA</th><th>Apostille</th><th>Translation</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-    
-    <div class="footnote">
-      <strong>📌 Important Note:</strong> All educational documents requiring attestation from MOFA must first be verified from the issuing board/university and then by IBCC/HEC.
-    </div>
-    
-    <div class="footer">Printed from Visa Manager · ${new Date().toLocaleString()}</div>
-  </body>
-  </html>
-  `;
-  printWindow.document.write(html);
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
-}
-
-// ---------- HELPERS ----------
-function renderAll() {
-  renderCountries();
-  renderCategories();
-  renderDocs();
-}
-
-// ---------- AUTO-REFRESH ----------
-// Refresh data every 60 seconds (optional)
-let refreshInterval = null;
-
-function startAutoRefresh() {
-  if (refreshInterval) clearInterval(refreshInterval);
-  refreshInterval = setInterval(() => {
-    if (!isLoading) {
-      loadDataFromGoogleSheets();
-    }
-  }, 60000); // Refresh every minute
-}
-
-// ---------- INIT ----------
-// Load data on page load
-loadDataFromGoogleSheets();
-
-// Start auto-refresh (optional)
-// startAutoRefresh();
-
-// Keyboard: Escape = home
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    resetAll();
-  }
-});
-
-console.log('✅ Google Sheets mode active! Data updates when sheet changes.');
-</script>
 </body>
 </html>
