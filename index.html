@@ -54,6 +54,7 @@
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
+            align-items: center;
         }
 
         /* ========== BUTTONS ========== */
@@ -336,49 +337,6 @@
             color: #94a3b8;
         }
 
-        /* ========== USER MODE ========== */
-        .user-mode .main-grid {
-            grid-template-columns: 1fr 2fr;
-        }
-        .user-mode .countries-panel {
-            grid-column: 1;
-        }
-        .user-mode .content-panel {
-            grid-column: 2;
-        }
-        @media (max-width: 768px) {
-            .user-mode .main-grid {
-                grid-template-columns: 1fr;
-            }
-            .user-mode .countries-panel {
-                grid-column: 1;
-            }
-            .user-mode .content-panel {
-                grid-column: 1;
-            }
-        }
-
-        /* ========== EDIT MODE ========== */
-        .edit-input {
-            width: 100%;
-            padding: 4px 8px;
-            border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            font-size: 0.85rem;
-        }
-        .edit-input:focus {
-            outline: none;
-            border-color: #1e293b;
-            box-shadow: 0 0 0 2px rgba(30, 41, 59, 0.1);
-        }
-        .edit-select {
-            padding: 4px 8px;
-            border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            background: white;
-        }
-
         /* ========== EMPTY STATE ========== */
         .empty-state {
             padding: 30px 10px;
@@ -462,24 +420,13 @@
             color: #0f172a;
         }
 
-        /* ========== SCROLLBAR ========== */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
-        /* ========== RESPONSIVE ========== */
         @media (max-width: 640px) {
             .header {
                 padding: 16px;
@@ -574,8 +521,8 @@
                 <div id="countriesList"></div>
             </div>
 
-            <!-- CATEGORIES PANEL (Admin Mode) -->
-            <div class="panel admin-only" id="categoriesPanel" style="display:block;">
+            <!-- CATEGORIES PANEL (Visible in BOTH modes) -->
+            <div class="panel" id="categoriesPanel">
                 <div class="panel-header">
                     <h3>📂 Categories</h3>
                     <span class="badge" id="categoryCount">0</span>
@@ -619,7 +566,6 @@
         // ============================================================
         // CONFIGURATION
         // ============================================================
-        // REPLACE WITH YOUR GOOGLE SHEET ID
         const SHEET_ID = '1OudfKywtYmvv0m3RHDxTuua_bCabQ9uutFpw-MgqhJ8';
 
         // ============================================================
@@ -630,7 +576,7 @@
         let categories = [];
         let selectedCountry = null;
         let selectedCategory = null;
-        let currentMode = 'user'; // 'user' or 'admin'
+        let currentMode = 'user';
         let isLoading = false;
         let modalCallback = null;
 
@@ -679,16 +625,13 @@
                 el.style.display = isAdmin ? '' : 'none';
             });
 
-            // Show/hide categories panel in user mode
-            document.getElementById('categoriesPanel').style.display = isAdmin ? '' : 'none';
+            // Categories panel is ALWAYS visible in both modes
+            document.getElementById('categoriesPanel').style.display = '';
 
-            // Adjust grid layout
-            const grid = document.getElementById('mainGrid');
+            // Show/hide breadcrumb
             if (!isAdmin) {
-                grid.style.gridTemplateColumns = '1fr 2fr';
                 breadcrumbContainer.style.display = '';
             } else {
-                grid.style.gridTemplateColumns = '1fr 1fr 2fr';
                 breadcrumbContainer.style.display = 'none';
             }
 
@@ -710,14 +653,27 @@
             try {
                 const url =
                     `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+                console.log('Fetching from:', url);
+
                 const response = await fetch(url);
 
-                if (!response.ok) throw new Error('Failed to fetch data');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
 
                 const csvText = await response.text();
-                const data = parseCSV(csvText);
+                console.log('CSV Data length:', csvText.length);
 
-                if (data.length === 0) throw new Error('No data found');
+                if (!csvText || csvText.trim().length === 0) {
+                    throw new Error('Empty response from Google Sheets');
+                }
+
+                const data = parseCSV(csvText);
+                console.log('Parsed data rows:', data.length);
+
+                if (data.length === 0) {
+                    throw new Error('No data found in the sheet');
+                }
 
                 // Build visaData
                 visaData = {};
@@ -743,13 +699,16 @@
                     }
                 });
 
-                // Extract unique countries and categories
+                // Extract countries and categories
                 countries = Object.keys(visaData).sort();
                 const allCats = new Set();
                 Object.values(visaData).forEach(catMap => {
                     Object.keys(catMap).forEach(cat => allCats.add(cat));
                 });
                 categories = Array.from(allCats).sort();
+
+                console.log('Countries:', countries);
+                console.log('Categories:', categories);
 
                 // Cache data
                 localStorage.setItem('visaDataCache', JSON.stringify(visaData));
@@ -767,6 +726,11 @@
                     try {
                         visaData = JSON.parse(cached);
                         countries = Object.keys(visaData).sort();
+                        const allCats = new Set();
+                        Object.values(visaData).forEach(catMap => {
+                            Object.keys(catMap).forEach(cat => allCats.add(cat));
+                        });
+                        categories = Array.from(allCats).sort();
                         setStatus('⚠️ Using cached data (offline)', 'error');
                         renderAll();
                     } catch (e) {
@@ -835,14 +799,12 @@
             breadcrumbCountry.textContent = selectedCountry || '';
             breadcrumbCategory.textContent = selectedCategory || 'Select a category';
 
-            // Show/hide separators
             const hasCountry = !!selectedCountry;
             const hasCategory = !!selectedCategory;
             breadcrumbCountry.style.display = hasCountry ? '' : 'none';
             breadcrumbCategory.style.display = hasCategory ? '' : 'none';
             breadcrumbSep.style.display = (hasCountry && hasCategory) ? '' : 'none';
 
-            // Update click handlers
             breadcrumbCountry.onclick = () => {
                 if (selectedCountry) resetToCountry();
             };
@@ -949,12 +911,12 @@
         function renderCategories() {
             categoriesList.innerHTML = '';
             if (!selectedCountry || !visaData[selectedCountry]) {
-                categoriesList.innerHTML = '<div class="empty-state">Select a country</div>';
+                categoriesList.innerHTML = '<div class="empty-state">Select a country to view categories</div>';
                 return;
             }
             const catKeys = Object.keys(visaData[selectedCountry]).sort();
             if (catKeys.length === 0) {
-                categoriesList.innerHTML = '<div class="empty-state">No categories</div>';
+                categoriesList.innerHTML = '<div class="empty-state">No categories found</div>';
                 return;
             }
             catKeys.forEach(cat => {
@@ -980,7 +942,7 @@
         function renderDocuments() {
             documentsList.innerHTML = '';
             if (!selectedCountry || !selectedCategory || !visaData[selectedCountry]?.[selectedCategory]) {
-                documentsList.innerHTML = '<div class="empty-state">Select a category to view documents</div>';
+                documentsList.innerHTML = '<div class="empty-state">Select a country and category to view documents</div>';
                 docFootnote.style.display = 'none';
                 contentTitle.textContent = '📄 Documents';
                 return;
@@ -991,7 +953,7 @@
             docFootnote.style.display = '';
 
             if (docs.length === 0) {
-                documentsList.innerHTML = '<div class="empty-state">No documents</div>';
+                documentsList.innerHTML = '<div class="empty-state">No documents found</div>';
                 return;
             }
 
@@ -1072,12 +1034,8 @@
         }
 
         // ============================================================
-        // ADMIN CRUD OPERATIONS (Google Sheets integration)
+        // ADMIN CRUD OPERATIONS
         // ============================================================
-        // Note: These functions update the data structure but you'll need
-        // to sync back to Google Sheets manually or via a backend.
-        // For now, they update the local data and cache.
-
         function updateDataAndSave() {
             localStorage.setItem('visaDataCache', JSON.stringify(visaData));
             countries = Object.keys(visaData).sort();
@@ -1088,14 +1046,9 @@
             categories = Array.from(allCats).sort();
             renderAll();
             updateBreadcrumb();
-            // Note: To persist to Google Sheets, you'd need to use the Sheets API
-            // or manually copy the data back to the sheet.
             alert('✅ Changes saved locally! To keep them permanent, copy the data back to Google Sheets.');
         }
 
-        // ============================================================
-        // COUNTRY CRUD
-        // ============================================================
         window.showAddCountry = function() {
             modalTitle.textContent = 'Add Country';
             modalBody.innerHTML = `
@@ -1142,9 +1095,6 @@
             updateDataAndSave();
         }
 
-        // ============================================================
-        // CATEGORY CRUD
-        // ============================================================
         window.showAddCategory = function() {
             if (!selectedCountry) { alert('Please select a country first'); return; }
             modalTitle.textContent = 'Add Category';
@@ -1195,9 +1145,6 @@
             updateDataAndSave();
         }
 
-        // ============================================================
-        // DOCUMENT CRUD
-        // ============================================================
         window.showAddDocument = function() {
             if (!selectedCountry || !selectedCategory) {
                 alert('Please select a country and category first');
@@ -1291,7 +1238,6 @@
             if (modalCallback) modalCallback();
         }
 
-        // Close modal on background click
         modal.addEventListener('click', (e) => {
             if (e.target === modal) closeModal();
         });
@@ -1364,13 +1310,9 @@
         // ============================================================
         // INIT
         // ============================================================
-        // Set default mode
         setMode('user');
-
-        // Load data
         loadDataFromGoogleSheets();
 
-        // Auto-refresh every 60 seconds
         setInterval(() => {
             if (!isLoading) loadDataFromGoogleSheets();
         }, 60000);
