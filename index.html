@@ -646,101 +646,101 @@
         // LOAD DATA FROM GOOGLE SHEETS
         // ============================================================
         async function loadDataFromGoogleSheets() {
-            if (isLoading) return;
-            isLoading = true;
-            setStatus('Loading from Google Sheets...', 'loading');
+    if (isLoading) return;
+    isLoading = true;
+    setStatus('Loading from Google Sheets...', 'loading');
 
-            try {
-                const url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vSSRWW_pVcc56C66m-rhggcL5XZFRWy28TbSxbfUyk0sw1QceGufvnlKzOr4kLX4rtbqnn8Q5wubj3c/gviz/tq?tqx=out:csv`;
-                
-                console.log('Fetching from:', url);
+    try {
+        // Use the correct CSV export URL
+        const url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vSSRWW_pVcc56C66m-rhggcL5XZFRWy28TbSxbfUyk0sw1QceGufvnlKzOr4kLX4rtbqnn8Q5wubj3c/export?format=csv&gid=1129442658`;
+        console.log('Fetching from:', url);
 
-                const response = await fetch(url);
+        const response = await fetch(url);
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-                const csvText = await response.text();
-                console.log('CSV Data length:', csvText.length);
+        const csvText = await response.text();
+        console.log('CSV Data:', csvText.substring(0, 200));
 
-                if (!csvText || csvText.trim().length === 0) {
-                    throw new Error('Empty response from Google Sheets');
-                }
+        if (!csvText || csvText.trim().length === 0) {
+            throw new Error('Empty response from Google Sheets');
+        }
 
-                const data = parseCSV(csvText);
-                console.log('Parsed data rows:', data.length);
+        const data = parseCSV(csvText);
+        console.log('Parsed data rows:', data.length);
 
-                if (data.length === 0) {
-                    throw new Error('No data found in the sheet');
-                }
+        if (data.length === 0) {
+            throw new Error('No data found in the sheet');
+        }
 
-                // Build visaData
-                visaData = {};
-                data.forEach(row => {
-                    const country = row.Country?.trim();
-                    const category = row.Category?.trim();
-                    const docName = row['Document Name']?.trim();
-                    const validity = row.Validity?.trim() || '—';
-                    const mofa = row.MOFA?.trim() || 'No';
-                    const apostille = row.Apostille?.trim() || 'No';
-                    const translation = row.Translation?.trim() || 'No';
+        // Build visaData
+        visaData = {};
+        data.forEach(row => {
+            const country = row.Country?.trim();
+            const category = row.Category?.trim();
+            const docName = row['Document Name']?.trim();
+            const validity = row.Validity?.trim() || '—';
+            const mofa = row.MOFA?.trim() || 'No';
+            const apostille = row.Apostille?.trim() || 'No';
+            const translation = row.Translation?.trim() || 'No';
 
-                    if (country && category && docName) {
-                        if (!visaData[country]) visaData[country] = {};
-                        if (!visaData[country][category]) visaData[country][category] = [];
-                        visaData[country][category].push({
-                            name: docName,
-                            validity: validity,
-                            mofa: mofa,
-                            apostille: apostille,
-                            translation: translation
-                        });
-                    }
+            if (country && category && docName) {
+                if (!visaData[country]) visaData[country] = {};
+                if (!visaData[country][category]) visaData[country][category] = [];
+                visaData[country][category].push({
+                    name: docName,
+                    validity: validity,
+                    mofa: mofa,
+                    apostille: apostille,
+                    translation: translation
                 });
+            }
+        });
 
-                // Extract countries and categories
+        // Extract countries and categories
+        countries = Object.keys(visaData).sort();
+        const allCats = new Set();
+        Object.values(visaData).forEach(catMap => {
+            Object.keys(catMap).forEach(cat => allCats.add(cat));
+        });
+        categories = Array.from(allCats).sort();
+
+        console.log('Countries:', countries);
+        console.log('Categories:', categories);
+
+        // Cache data
+        localStorage.setItem('visaDataCache', JSON.stringify(visaData));
+
+        setStatus(`✅ Loaded ${countries.length} countries, ${categories.length} categories`, 'connected');
+        renderAll();
+
+    } catch (error) {
+        console.error('Error:', error);
+        setStatus('❌ Error: ' + error.message, 'error');
+        
+        // Try cache
+        const cached = localStorage.getItem('visaDataCache');
+        if (cached) {
+            try {
+                visaData = JSON.parse(cached);
                 countries = Object.keys(visaData).sort();
                 const allCats = new Set();
                 Object.values(visaData).forEach(catMap => {
                     Object.keys(catMap).forEach(cat => allCats.add(cat));
                 });
                 categories = Array.from(allCats).sort();
-
-                console.log('Countries:', countries);
-                console.log('Categories:', categories);
-
-                // Cache data
-                localStorage.setItem('visaDataCache', JSON.stringify(visaData));
-
-                setStatus(`✅ Loaded ${countries.length} countries, ${categories.length} categories`, 'connected');
+                setStatus('⚠️ Using cached data (offline)', 'error');
                 renderAll();
-
-            } catch (error) {
-                console.error('Error:', error);
-                setStatus('❌ Error: ' + error.message, 'error');
-
-                // Try cache
-                const cached = localStorage.getItem('visaDataCache');
-                if (cached) {
-                    try {
-                        visaData = JSON.parse(cached);
-                        countries = Object.keys(visaData).sort();
-                        const allCats = new Set();
-                        Object.values(visaData).forEach(catMap => {
-                            Object.keys(catMap).forEach(cat => allCats.add(cat));
-                        });
-                        categories = Array.from(allCats).sort();
-                        setStatus('⚠️ Using cached data (offline)', 'error');
-                        renderAll();
-                    } catch (e) {
-                        console.error('Cache error:', e);
-                    }
-                }
-            } finally {
-                isLoading = false;
+            } catch (e) {
+                console.error('Cache error:', e);
             }
         }
+    } finally {
+        isLoading = false;
+    }
+}
 
         // ============================================================
         // PARSE CSV
