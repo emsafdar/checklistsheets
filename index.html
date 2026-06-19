@@ -944,21 +944,21 @@
                 contentTitle.textContent = '📄 Documents';
                 return;
             }
-
+        
             const docs = visaData[selectedCountry][selectedCategory];
             contentTitle.textContent = `📄 Documents (${selectedCountry} / ${selectedCategory})`;
-            docFootnote.style.display = '';
-
+            docFootnote.style.display = ''; // Show the HTML footnote
+        
             if (docs.length === 0) {
                 documentsList.innerHTML = '<div class="empty-state">No documents found</div>';
                 return;
             }
-
+        
             let html = `<div class="table-wrapper"><table>
                 <thead><tr><th>Document</th><th>Validity</th><th>MOFA</th><th>Apostille</th><th>Translation</th>`;
             if (currentMode === 'admin') html += `<th>Actions</th>`;
             html += `</tr></thead><tbody>`;
-
+        
             docs.forEach((d, idx) => {
                 html += `<tr class="doc-row">
                     <td><strong>${d.name}</strong></td>
@@ -976,9 +976,9 @@
                 }
                 html += `</tr>`;
             });
-
+        
             html += `</tbody></table></div>`;
-            
+            // The footnote is now ONLY shown from the HTML docFootnote div
             documentsList.innerHTML = html;
         }
 
